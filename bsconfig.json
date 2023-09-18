@@ -1,5 +1,5 @@
 {
-  "name": "rescript-project-template",
+  "name": "ReX",
   "sources": {
     "dir": "src",
     "subdirs": true
