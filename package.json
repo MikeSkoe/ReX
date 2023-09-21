@@ -9,7 +9,8 @@
   "scripts": {
     "res:build": "rescript",
     "res:clean": "rescript clean",
-    "res:dev": "rescript build -w"
+    "res:dev": "rescript build -w",
+    "test": "node --watch ./test/RunTest.bs.js"
   },
   "dependencies": {
     "@rescript/core": "*",

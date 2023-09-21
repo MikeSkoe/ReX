@@ -1,6 +1,5 @@
 type t<'a>;
 type call<'call>;
-type read<'a>;
 
 let make: 'a => (t<'a>, call<'a>);
 
@@ -23,7 +22,7 @@ let reduce: (
     t<'a>,
     'b,
     ('b, 'a) => 'b,
-) => (t<'b>, read<'b>);
+) => t<'b>;
 
 let sub: (
     t<'a>,
@@ -34,5 +33,3 @@ let call: (
     call<'a>,
     'a,
 ) => unit;
-
-let read: read<'a> => 'a;

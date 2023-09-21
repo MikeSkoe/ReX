@@ -72,19 +72,13 @@ function reduce(depOn, initial, reduce$1) {
   var state = {
     contents: initial
   };
-  var read = function (param) {
-    return state.contents;
-  };
   depOn.contents = Belt_List.add(depOn.contents, (function (value) {
           state.contents = Curry._2(reduce$1, state.contents, value);
           Belt_List.forEach(resOn.contents, (function (fn) {
                   return Curry._1(fn, state.contents);
                 }));
         }));
-  return [
-          resOn,
-          read
-        ];
+  return resOn;
 }
 
 function sub(depOn, callback) {
@@ -100,10 +94,6 @@ function call(call$1, value) {
   return Curry._1(call$1, value);
 }
 
-function read(read$1) {
-  return Curry._1(read$1, undefined);
-}
-
 exports.make = make;
 exports.map = map;
 exports.merge = merge;
@@ -111,5 +101,4 @@ exports.thunk = thunk;
 exports.reduce = reduce;
 exports.sub = sub;
 exports.call = call;
-exports.read = read;
 /* No side effect */

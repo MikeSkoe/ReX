@@ -3,7 +3,6 @@ module Option = Belt.Option
 
 type t<'a> = ref<list<'a => unit>>;
 type call<'a> = 'a => unit;
-type read<'a> = unit => 'a;
 
 let make = _ => {
     let t: t<'a> = ref(list{});
@@ -11,7 +10,6 @@ let make = _ => {
     (t, call);
 };
 
-// TODO: Also accept an "unsub" function to be able to cancel a promise or timeout
 let thunk = (depOn, thunk) => {
     let resOn = ref(list{});
     let lastUnsub = ref(None);
@@ -48,7 +46,6 @@ let merge = (a, b) => {
 let reduce = (depOn, initial, reduce) => {
     let resOn = ref(list{});
     let state = ref(initial);
-    let read = () => state.contents;
 
     depOn := depOn.contents->List.add(value => {
         state := reduce(state.contents, value);
@@ -57,7 +54,7 @@ let reduce = (depOn, initial, reduce) => {
         );
     });
 
-    (resOn, read);
+    resOn;
 }
 
 let sub = (depOn, callback) => {
@@ -66,5 +63,4 @@ let sub = (depOn, callback) => {
 }
 
 let call = (call, value) => value->call;
-let read = read => read();
 
