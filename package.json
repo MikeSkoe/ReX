@@ -1,11 +1,15 @@
 {
   "name": "@mikeskoe/rex",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "keywords": [
     "rescript"
   ],
   "license": "MIT",
-  "author": "",
+  "repository": {
+      "type": "git",
+      "url": "git+https://github.com/MikeSkoe/reactive.git"
+  },
+  "author": "Mikhail Skorykh",
   "scripts": {
     "res:build": "rescript",
     "res:clean": "rescript clean",
