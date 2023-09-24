@@ -1,57 +1,70 @@
 module List = Belt.List;
 
-let check = (on, ~call, ~msg, ~expected) => {
-    let unsub = on->ReX.sub(Test.run(msg, expected));
-    call();
-    unsub(.);
-}
-
-let testMap = () => {
-    let (x, setX) = ReX.make(1);
-
-    check(x->ReX.map(num => num + 1),
-        ~call=() => setX->ReX.call(1),
-        ~msg="map",
-        ~expected=2,
+module Util = {
+    let wait = ms => Js.Promise2.make((~resolve, ~reject as _) =>
+        setTimeout(() => resolve(. ()), ms)->ignore,
     );
+
+    let interval = (ms, timeout, dispatch) => {
+        let y = ReX.make();
+        let unsub = y
+            ->ReX.reduce(0, (acc, _) => acc + 1)
+            ->ReX.sub(dispatch);
+        let id = Js.Global.setInterval(y->ReX.call, ms);
+
+        wait(timeout)
+            ->Js.Promise2.then(async () => Js.Global.clearInterval(id))
+            ->ignore;
+
+        Some(() => {
+            Js.Global.clearInterval(id);
+            unsub(.);
+        });
+    }
+
+    let getLastValue = async (on, call) => {
+        let lastValue = ref(None);
+        let unsub = on->ReX.sub(value => lastValue := Some(value));
+        await call();
+        unsub(.);
+        lastValue.contents;
+    }
 }
 
-let testReduce = () => {
-    let (x, setX) = ReX.make();
+let testMap = async () => {
+    let x = ReX.make(1);
+    let mapped = x->ReX.map(num => num + 1);
+
+    let lastValue = await Util.getLastValue(
+        mapped,
+        async () => x->ReX.call(1),
+    );
+
+    Test.run("map", lastValue, Some(2));
+}
+
+let testReduce = async () => {
+    let x = ReX.make();
     let appendIfOdd = (acc, curr) => mod(curr, 2) == 0 ? acc : acc->List.add(curr);
     let oddNums =
         x
         ->ReX.reduce(0, (acc, _) => acc + 1)
         ->ReX.reduce(list{}, appendIfOdd);
 
-    for _ in 1 to 9 {
-        setX->ReX.call();
-    }
-
-    check(oddNums,
-        ~msg="reduce",
-        ~expected=list{9, 7, 5, 3, 1},
-        ~call=() => setX->ReX.call(),
+    let lastValue = await Util.getLastValue(
+        oddNums,
+        async () => {
+            for _ in 1 to 10 {
+                x->ReX.call();
+            }
+        },
     );
+
+    Test.run("reduce", lastValue, Some(list{9, 7, 5, 3, 1}));
 }
 
-let testThunkSimple = () => {
-    let (x, setX) = ReX.make(1);
-    let thunked = x->ReX.thunk((. dispatch, a) => {
-        dispatch(a);
-        None;
-    });
-
-    check(
-        ~call=() => setX->ReX.call(1),
-        ~msg="thunk",
-        ~expected=1,
-        thunked,
-    );
-}
-
-let testThunkFilter = () => {
-    let (x, setX) = ReX.make(1);
+let testThunkFilter = async () => {
+    let x = ReX.make(1);
     let callIfEven = (. dispatch, a) => {
         if mod(a, 2) == 0 {
             dispatch(a);
@@ -63,20 +76,19 @@ let testThunkFilter = () => {
         ->ReX.thunk(callIfEven)
         ->ReX.reduce(0, (acc, curr) => acc + curr);
 
-    setX->ReX.call(1);
-    setX->ReX.call(2);
-    setX->ReX.call(31);
-    setX->ReX.call(44);
-    setX->ReX.call(101);
+    let lastValue = await Util.getLastValue(thunked, async () => {
+        x->ReX.call(1);
+        x->ReX.call(2);
+        x->ReX.call(31);
+        x->ReX.call(44);
+        x->ReX.call(101);
+        x->ReX.call(302);
+    });
 
-    check(thunked,
-        ~call=() => setX->ReX.call(302),
-        ~msg="thunk filter",
-        ~expected=2 + 44 + 302,
-    );
+    Test.run("thunk filter", lastValue, Some(2 + 44 + 302));
 }
 
-let counter = () => {
+let testCounter = async () => {
     module Counter = {
         type action = Increment(int) | Reset;
         type state = int;
@@ -87,8 +99,8 @@ let counter = () => {
         }
     }
 
-    let (incr, setIncr) = ReX.make(0);
-    let (reset, setReset) = ReX.make();
+    let incr = ReX.make(0);
+    let reset = ReX.make();
 
     let input =
         incr
@@ -96,35 +108,62 @@ let counter = () => {
         ->ReX.merge(reset->ReX.map(_ => Counter.Reset))
         ->ReX.reduce(Counter.empty, Counter.reduce);
 
-    setIncr->ReX.call(1);
-    setIncr->ReX.call(20);
+    let lastValue = await Util.getLastValue(input, async () => {
+        incr->ReX.call(1);
+        incr->ReX.call(20);
+        incr->ReX.call(300)
+    });
 
-    check(input,
-        ~call=() => setIncr->ReX.call(300),
-        ~msg="counter == 321",
-        ~expected=321,
-    )
-    check(input,
-        ~call=() => setReset->ReX.call(),
-        ~msg="counter is reset",
-        ~expected=0,
-    )
+    Test.run("counter === 321", lastValue, Some(321));
 
-    setIncr->ReX.call(2);
-    setIncr->ReX.call(30);
-    check(input,
-        ~call=() => setIncr->ReX.call(400),
-        ~msg="counter == 432",
-        ~expected=432,
-    )
+    let lastValue = await Util.getLastValue(input, async () => {
+        reset->ReX.call();
+    });
+
+    Test.run("counter is reset", lastValue, Some(Counter.empty));
+
+    let lastValue = await Util.getLastValue(input, async () => {
+        incr->ReX.call(2);
+        incr->ReX.call(30);
+        incr->ReX.call(400);
+    });
+
+    Test.run("counter == 432", lastValue, Some(432));
 }
 
-let main = () => {
-    testMap();
-    testReduce();
-    testThunkSimple();
-    testThunkFilter();
-    counter();
+let testInterval = async () => {
+    let x = ReX.make();
+    let incr =
+        x
+        ->ReX.thunk((. dispatch, _) => Util.interval(100, 1100, dispatch))
+        ->ReX.reduce(list{}, Belt.List.add)
+        ->ReX.map(Belt.List.reverse);
+
+    let lastValue = await Util.getLastValue(incr,
+        async () => {
+            x->ReX.call();
+            await Util.wait(400);
+            x->ReX.call();
+            await Util.wait(2000);
+        }
+    );
+
+    Test.run("timer",
+        lastValue,
+        Some(list{1, 2, 3, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}),
+    );
 }
 
-main();
+let main = async () => {
+    Js.log("test {");
+    let _ = await Js.Promise2.all([
+        testMap(),
+        testReduce(),
+        testThunkFilter(),
+        testCounter(),
+        testInterval(),
+    ]);
+    Js.log("}");
+}
+
+main()->ignore;

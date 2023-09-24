@@ -1,7 +1,6 @@
 type t<'a>;
-type call<'call>;
 
-let make: 'a => (t<'a>, call<'a>);
+let make: 'a => t<'a>;
 
 let map: (
     t<'a>,
@@ -15,7 +14,7 @@ let merge: (
 
 let thunk: (
     t<'a>,
-    (. 'b => unit, 'a) => option<unit => unit>,
+    (. ('b => unit), 'a) => option<unit => unit>, 
 ) => t<'b>;
 
 let reduce: (
@@ -30,6 +29,7 @@ let sub: (
 ) => ((. unit) => unit);
 
 let call: (
-    call<'a>,
+    t<'a>,
     'a,
 ) => unit;
+

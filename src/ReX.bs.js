@@ -4,21 +4,12 @@
 var Curry = require("rescript/lib/js/curry.js");
 var Caml_obj = require("rescript/lib/js/caml_obj.js");
 var Belt_List = require("rescript/lib/js/belt_List.js");
-var Belt_Option = require("rescript/lib/js/belt_Option.js");
+var Core__Option = require("@rescript/core/src/Core__Option.bs.js");
 
 function make(param) {
-  var t = {
-    contents: /* [] */0
-  };
-  var call = function (value) {
-    Belt_List.forEach(t.contents, (function (fn) {
-            Curry._1(fn, value);
-          }));
-  };
-  return [
-          t,
-          call
-        ];
+  return {
+          contents: /* [] */0
+        };
 }
 
 function thunk(depOn, thunk$1) {
@@ -30,7 +21,7 @@ function thunk(depOn, thunk$1) {
   };
   depOn.contents = Belt_List.add(depOn.contents, (function (value) {
           Belt_List.forEach(resOn.contents, (function (fn) {
-                  Belt_Option.forEach(lastUnsub.contents, (function (fn) {
+                  Core__Option.forEach(lastUnsub.contents, (function (fn) {
                           Curry._1(fn, undefined);
                         }));
                   lastUnsub.contents = thunk$1(fn, value);
@@ -90,8 +81,10 @@ function sub(depOn, callback) {
   };
 }
 
-function call(call$1, value) {
-  return Curry._1(call$1, value);
+function call(t, value) {
+  Belt_List.forEach(t.contents, (function (fn) {
+          return Curry._1(fn, value);
+        }));
 }
 
 exports.make = make;

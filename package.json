@@ -1,6 +1,6 @@
 {
-  "name": "rex",
-  "version": "0.0.1",
+  "name": "@mikeskoe/rex",
+  "version": "0.0.2",
   "keywords": [
     "rescript"
   ],

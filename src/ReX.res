@@ -1,14 +1,8 @@
 module List = Belt.List;
-module Option = Belt.Option
 
 type t<'a> = ref<list<'a => unit>>;
-type call<'a> = 'a => unit;
 
-let make = _ => {
-    let t: t<'a> = ref(list{});
-    let call: call<'a> = value => t.contents->List.forEach(fn => fn(value));
-    (t, call);
-};
+let make = (_: 'a): t<'a> => ref(list{});
 
 let thunk = (depOn, thunk) => {
     let resOn = ref(list{});
@@ -36,7 +30,7 @@ let map = (depOn, map) => {
 
 let merge = (a, b) => {
     let resOn = ref(list{});
-    let callback = value => resOn.contents->List.forEach(fn => value->fn)
+    let callback = value => resOn.contents->List.forEach(fn => value->fn);
 
     a := a.contents->List.add(callback);
     b := b.contents->List.add(callback);
@@ -62,5 +56,5 @@ let sub = (depOn, callback) => {
     (. ()) => depOn := depOn.contents->List.keep(fn => fn != callback);
 }
 
-let call = (call, value) => value->call;
+let call = (t, value) => t.contents->List.forEach(fn => value->fn);
 
