@@ -2,7 +2,6 @@
 'use strict';
 
 var Curry = require("rescript/lib/js/curry.js");
-var Caml_obj = require("rescript/lib/js/caml_obj.js");
 var Belt_List = require("rescript/lib/js/belt_List.js");
 var Core__Option = require("@rescript/core/src/Core__Option.bs.js");
 
@@ -74,9 +73,9 @@ function reduce(depOn, initial, reduce$1) {
 
 function sub(depOn, callback) {
   depOn.contents = Belt_List.add(depOn.contents, callback);
-  return function () {
+  return function (param) {
     depOn.contents = Belt_List.keep(depOn.contents, (function (fn) {
-            return Caml_obj.notequal(fn, callback);
+            return fn !== callback;
           }));
   };
 }

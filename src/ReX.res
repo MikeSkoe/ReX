@@ -53,7 +53,7 @@ let reduce = (depOn, initial, reduce) => {
 
 let sub = (depOn, callback) => {
     depOn := depOn.contents->List.add(callback);
-    (. ()) => depOn := depOn.contents->List.keep(fn => fn != callback);
+    () => depOn := depOn.contents->List.keep(fn => fn !== callback);
 }
 
 let call = (t, value) => t.contents->List.forEach(fn => value->fn);

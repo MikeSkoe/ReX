@@ -26,7 +26,7 @@ let reduce: (
 let sub: (
     t<'a>,
     'a => unit,
-) => ((. unit) => unit);
+) => (unit => unit);
 
 let call: (
     t<'a>,

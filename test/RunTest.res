@@ -18,7 +18,7 @@ module Util = {
 
         Some(() => {
             Js.Global.clearInterval(id);
-            unsub(.);
+            unsub();
         });
     }
 
@@ -26,7 +26,7 @@ module Util = {
         let lastValue = ref(None);
         let unsub = on->ReX.sub(value => lastValue := Some(value));
         await call();
-        unsub(.);
+        unsub();
         lastValue.contents;
     }
 }

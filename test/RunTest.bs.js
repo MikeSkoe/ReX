@@ -29,7 +29,7 @@ function interval(ms, timeout, dispatch) {
         }));
   return (function (param) {
             clearInterval(id);
-            unsub();
+            Curry._1(unsub, undefined);
           });
 }
 
@@ -41,7 +41,7 @@ async function getLastValue(on, call) {
           lastValue.contents = Caml_option.some(value);
         }));
   await Curry._1(call, undefined);
-  unsub();
+  Curry._1(unsub, undefined);
   return lastValue.contents;
 }
 
