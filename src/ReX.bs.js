@@ -2,24 +2,27 @@
 'use strict';
 
 var Curry = require("rescript/lib/js/curry.js");
+var Js_math = require("rescript/lib/js/js_math.js");
 var Belt_List = require("rescript/lib/js/belt_List.js");
 var Core__Option = require("@rescript/core/src/Core__Option.bs.js");
 
 function make(param) {
   return {
-          contents: /* [] */0
+          id: Js_math.random_int(1, 99999),
+          subs: /* [] */0
         };
 }
 
 function thunk(depOn, thunk$1) {
   var resOn = {
-    contents: /* [] */0
+    id: Js_math.random_int(1, 99999),
+    subs: /* [] */0
   };
   var lastUnsub = {
     contents: undefined
   };
-  depOn.contents = Belt_List.add(depOn.contents, (function (value) {
-          Belt_List.forEach(resOn.contents, (function (fn) {
+  depOn.subs = Belt_List.add(depOn.subs, (function (value) {
+          Belt_List.forEach(resOn.subs, (function (fn) {
                   Core__Option.forEach(lastUnsub.contents, (function (fn) {
                           Curry._1(fn, undefined);
                         }));
@@ -29,68 +32,75 @@ function thunk(depOn, thunk$1) {
   return resOn;
 }
 
-function map(depOn, map$1) {
-  var resOn = {
-    contents: /* [] */0
-  };
-  depOn.contents = Belt_List.add(depOn.contents, (function (value) {
-          Belt_List.forEach(resOn.contents, (function (fn) {
-                  return Curry._1(fn, Curry._1(map$1, value));
-                }));
-        }));
-  return resOn;
-}
-
 function merge(a, b) {
   var resOn = {
-    contents: /* [] */0
+    id: Js_math.random_int(1, 99999),
+    subs: /* [] */0
   };
   var callback = function (value) {
-    Belt_List.forEach(resOn.contents, (function (fn) {
-            return Curry._1(fn, value);
+    Belt_List.forEach(resOn.subs, (function (fn) {
+            Curry._1(fn, value);
           }));
   };
-  a.contents = Belt_List.add(a.contents, callback);
-  b.contents = Belt_List.add(b.contents, callback);
-  return resOn;
-}
-
-function reduce(depOn, initial, reduce$1) {
-  var resOn = {
-    contents: /* [] */0
-  };
-  var state = {
-    contents: initial
-  };
-  depOn.contents = Belt_List.add(depOn.contents, (function (value) {
-          state.contents = Curry._2(reduce$1, state.contents, value);
-          Belt_List.forEach(resOn.contents, (function (fn) {
-                  return Curry._1(fn, state.contents);
-                }));
-        }));
+  a.subs = Belt_List.add(a.subs, callback);
+  b.subs = Belt_List.add(b.subs, callback);
   return resOn;
 }
 
 function sub(depOn, callback) {
-  depOn.contents = Belt_List.add(depOn.contents, callback);
+  depOn.subs = Belt_List.add(depOn.subs, callback);
   return function (param) {
-    depOn.contents = Belt_List.keep(depOn.contents, (function (fn) {
+    depOn.subs = Belt_List.keep(depOn.subs, (function (fn) {
             return fn !== callback;
           }));
   };
 }
 
 function call(t, value) {
-  Belt_List.forEach(t.contents, (function (fn) {
-          return Curry._1(fn, value);
+  Belt_List.forEach(t.subs, (function (fn) {
+          Curry._1(fn, value);
         }));
 }
 
+function reduce(depOn, initial, reduce$1) {
+  var resOn = {
+    id: Js_math.random_int(1, 99999),
+    subs: /* [] */0
+  };
+  var state = {
+    contents: initial
+  };
+  depOn.subs = Belt_List.add(depOn.subs, (function (value) {
+          state.contents = Curry._2(reduce$1, state.contents, value);
+          Belt_List.forEach(resOn.subs, (function (fn) {
+                  Curry._1(fn, state.contents);
+                }));
+        }));
+  return resOn;
+}
+
+function map(depOn, map$1) {
+  var resOn = {
+    id: Js_math.random_int(1, 99999),
+    subs: /* [] */0
+  };
+  depOn.subs = Belt_List.add(depOn.subs, (function (value) {
+          Belt_List.forEach(resOn.subs, (function (fn) {
+                  Curry._1(fn, Curry._1(map$1, value));
+                }));
+        }));
+  return resOn;
+}
+
+var Utils = {
+  reduce: reduce,
+  map: map
+};
+
 exports.make = make;
-exports.map = map;
 exports.merge = merge;
 exports.thunk = thunk;
-exports.reduce = reduce;
 exports.sub = sub;
 exports.call = call;
+exports.Utils = Utils;
 /* No side effect */

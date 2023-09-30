@@ -2,11 +2,6 @@ type t<'a>;
 
 let make: 'a => t<'a>;
 
-let map: (
-    t<'a>,
-    'a => 'b,
-) => t<'b>;
-
 let merge: (
     t<'a>,
     t<'a>,
@@ -15,12 +10,6 @@ let merge: (
 let thunk: (
     t<'a>,
     (. ('b => unit), 'a) => option<unit => unit>, 
-) => t<'b>;
-
-let reduce: (
-    t<'a>,
-    'b,
-    ('b, 'a) => 'b,
 ) => t<'b>;
 
 let sub: (
@@ -33,3 +22,15 @@ let call: (
     'a,
 ) => unit;
 
+module Utils: {
+    let reduce: (
+        t<'a>,
+        'b,
+        ('b, 'a) => 'b,
+    ) => t<'b>;
+
+    let map: (
+        t<'a>,
+        'a => 'b,
+    ) => t<'b>;
+}

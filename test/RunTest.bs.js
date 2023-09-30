@@ -18,7 +18,7 @@ function wait(ms) {
 
 function interval(ms, timeout, dispatch) {
   var y = ReX.make(undefined);
-  var unsub = ReX.sub(ReX.reduce(y, 0, (function (acc, param) {
+  var unsub = ReX.sub(ReX.Utils.reduce(y, 0, (function (acc, param) {
               return acc + 1 | 0;
             })), dispatch);
   var id = setInterval((function (param) {
@@ -53,7 +53,7 @@ var Util = {
 
 async function testMap(param) {
   var x = ReX.make(1);
-  var mapped = ReX.map(x, (function (num) {
+  var mapped = ReX.Utils.map(x, (function (num) {
           return num + 1 | 0;
         }));
   var lastValue = await getLastValue(mapped, (async function (param) {
@@ -71,7 +71,7 @@ async function testReduce(param) {
       return Belt_List.add(acc, curr);
     }
   };
-  var oddNums = ReX.reduce(ReX.reduce(x, 0, (function (acc, param) {
+  var oddNums = ReX.Utils.reduce(ReX.Utils.reduce(x, 0, (function (acc, param) {
               return acc + 1 | 0;
             })), /* [] */0, appendIfOdd);
   var lastValue = await getLastValue(oddNums, (async function (param) {
@@ -105,7 +105,7 @@ async function testThunkFilter(param) {
     }
     
   };
-  var thunked = ReX.reduce(ReX.thunk(x, callIfEven), 0, (function (acc, curr) {
+  var thunked = ReX.Utils.reduce(ReX.thunk(x, callIfEven), 0, (function (acc, curr) {
           return acc + curr | 0;
         }));
   var lastValue = await getLastValue(thunked, (async function (param) {
@@ -129,11 +129,11 @@ async function testCounter(param) {
   };
   var incr = ReX.make(0);
   var reset = ReX.make(undefined);
-  var input = ReX.reduce(ReX.merge(ReX.map(incr, (function (shift) {
+  var input = ReX.Utils.reduce(ReX.merge(ReX.Utils.map(incr, (function (shift) {
                   return /* Increment */{
                           _0: shift
                         };
-                })), ReX.map(reset, (function (param) {
+                })), ReX.Utils.map(reset, (function (param) {
                   return /* Reset */0;
                 }))), 0, reduce);
   var lastValue = await getLastValue(input, (async function (param) {
@@ -156,7 +156,7 @@ async function testCounter(param) {
 
 async function testInterval(param) {
   var x = ReX.make(undefined);
-  var incr = ReX.map(ReX.reduce(ReX.thunk(x, (function (dispatch, param) {
+  var incr = ReX.Utils.map(ReX.Utils.reduce(ReX.thunk(x, (function (dispatch, param) {
                   return interval(100, 1100, dispatch);
                 })), /* [] */0, Belt_List.add), Belt_List.reverse);
   var lastValue = await getLastValue(incr, (async function (param) {
@@ -207,6 +207,24 @@ async function testInterval(param) {
             });
 }
 
+async function testSub(param) {
+  var x = ReX.make(0);
+  var strc = ReX.Utils.map(ReX.Utils.map(x, (function (value) {
+              return {
+                      isEven: value % 2 === 0,
+                      value: value
+                    };
+            })), (function (param) {
+          return param.isEven;
+        }));
+  var lastValue = await getLastValue(strc, (async function (param) {
+          return ReX.call(x, 3);
+        }));
+  Test.run(undefined, "sub", lastValue, false);
+  ReX.call(x, 2);
+  return Test.run(undefined, "unsubed", lastValue, false);
+}
+
 async function main(param) {
   console.log("test {");
   await Promise.all([
@@ -214,7 +232,8 @@ async function main(param) {
         testReduce(undefined),
         testThunkFilter(undefined),
         testCounter(undefined),
-        testInterval(undefined)
+        testInterval(undefined),
+        testSub(undefined)
       ]);
   console.log("}");
 }
@@ -230,5 +249,6 @@ exports.testReduce = testReduce;
 exports.testThunkFilter = testThunkFilter;
 exports.testCounter = testCounter;
 exports.testInterval = testInterval;
+exports.testSub = testSub;
 exports.main = main;
 /*  Not a pure module */
