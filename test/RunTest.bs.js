@@ -110,7 +110,7 @@ async function testCounter(param) {
   };
   var incr = Rexx.make(Rexx.id);
   var reset = Rexx.make(Rexx.id);
-  var input = Rexx.reduce(Rexx.merge(Rexx.map(incr, (function (shift) {
+  var input = Rexx.reduce(Rexx.either(Rexx.map(incr, (function (shift) {
                   return /* Increment */{
                           _0: shift
                         };
@@ -163,6 +163,24 @@ async function testInterval(param) {
           return Rexx.call(interval, true);
         }));
   return Test.run(undefined, "timer", lastValue, 19);
+}
+
+async function testBoth(param) {
+  var a = Rexx.make(Rexx.id);
+  var b = Rexx.make(Rexx.id);
+  var res = Rexx.both(a, b, [
+        0,
+        ""
+      ], Rexx.id);
+  var lastValue = await getLast(res, (async function (param) {
+          Rexx.call(a, 1);
+          Rexx.call(b, "A");
+          return Rexx.call(a, 2);
+        }));
+  return Test.run(undefined, "both", lastValue, [
+              2,
+              "A"
+            ]);
 }
 
 async function testFlatMap(param) {
@@ -224,7 +242,8 @@ async function main(param) {
         testCounter(undefined),
         testInterval(undefined),
         testSub(undefined),
-        testFlatMap(undefined)
+        testFlatMap(undefined),
+        testBoth(undefined)
       ]);
   console.log("}");
 }
@@ -240,6 +259,7 @@ exports.testReduce = testReduce;
 exports.testThunkFilter = testThunkFilter;
 exports.testCounter = testCounter;
 exports.testInterval = testInterval;
+exports.testBoth = testBoth;
 exports.testFlatMap = testFlatMap;
 exports.testSub = testSub;
 exports.main = main;

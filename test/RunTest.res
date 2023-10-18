@@ -84,7 +84,7 @@ let testCounter = async () => {
     let reset = Rexx.make(Rexx.id);
 
     let input =
-        Rexx.merge(
+        Rexx.either(
             incr->Rexx.map(shift => Counter.Increment(shift)),
             reset->Rexx.map(_ => Counter.Reset),
             Rexx.id,
@@ -144,12 +144,23 @@ let testInterval = async () => {
 
 type tempStrc = { isEven: bool, value: int };
 
+let testBoth = async () => {
+    let a: Rexx.t<int, int> = Rexx.make(Rexx.id);
+    let b: Rexx.t<string, string> = Rexx.make(Rexx.id);
+    let res = Rexx.both(a, b, (0, ""), Rexx.id);
+    let lastValue = await res->Util.getLast(async () => {
+        a->Rexx.call(1);
+        b->Rexx.call("A");
+        a->Rexx.call(2);
+    });
+
+    Test.run("both", lastValue, Some((2, "A")));
+}
+
 let testFlatMap = async () => {
     let a: Rexx.t<bool, bool> = Rexx.make(Rexx.id);
     let res = a
-        ->Rexx.flatMap(true,
-            value => Rexx.make(_ => value == true ? "TRUE" : "FALSE"),
-        )
+        ->Rexx.flatMap(true, value => Rexx.make(_ => value == true ? "TRUE" : "FALSE"))
         ->Rexx.reduce(list{}, Belt.List.add);
 
     let lastValue = await res->Util.getLast(async () => {
@@ -177,9 +188,7 @@ let testSub = async () => {
     });
 
     Test.run("sub", lastValue, Some(false));
-
     x->Rexx.call(2);
-
     Test.run("unsubed", lastValue, Some(false));
 };
 
@@ -193,6 +202,7 @@ let main = async () => {
         testInterval(),
         testSub(),
         testFlatMap(),
+        testBoth(),
     ]);
     Js.log("}");
 }

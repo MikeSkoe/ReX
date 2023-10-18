@@ -35,12 +35,30 @@ let call: (t<'a, 'b>, 'a) => unit
     =
     (t, value) => t.onNext->Subs.forEach((_, dispatch) => t.thunk(value, dispatch));
 
-let merge: (t<'a, 'b>, t<'c, 'b>, 'b => 'd) => t<'b, 'd>
+let either: (t<'a, 'b>, t<'c, 'b>, 'b => 'd) => t<'b, 'd>
     =
     (a, b, map) => {
         let res = make(map);
         a.onNext = a.onNext->Subs.set(res.id, call(res));
         b.onNext = b.onNext->Subs.set(res.id, call(res));
+        res;
+    }
+
+let both: (t<'a, 'b>, t<'c, 'd>, ('b, 'd), (('b, 'd)) => 'e) => t<('b, 'd), 'e>
+    =
+    (a, b, initial, map) => {
+        let res = make(map);
+        let both = ref(initial);
+        a.onNext = a.onNext->Subs.set(res.id, value => {
+            let (_, right) = both.contents;
+            both := (value, right);
+            res->call(both.contents);
+        });
+        b.onNext = b.onNext->Subs.set(res.id, value => {
+            let (left, _) = both.contents;
+            both := (left, value);
+            res->call(both.contents);
+        });
         res;
     }
 

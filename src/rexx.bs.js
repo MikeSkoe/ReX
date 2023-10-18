@@ -40,13 +40,37 @@ function call(t, value) {
         }));
 }
 
-function merge(a, b, map) {
+function either(a, b, map) {
   var res = make(map);
   a.onNext = Belt_MapInt.set(a.onNext, res.id, (function (param) {
           return call(res, param);
         }));
   b.onNext = Belt_MapInt.set(b.onNext, res.id, (function (param) {
           return call(res, param);
+        }));
+  return res;
+}
+
+function both(a, b, initial, map) {
+  var res = make(map);
+  var both$1 = {
+    contents: initial
+  };
+  a.onNext = Belt_MapInt.set(a.onNext, res.id, (function (value) {
+          var match = both$1.contents;
+          both$1.contents = [
+            value,
+            match[1]
+          ];
+          call(res, both$1.contents);
+        }));
+  b.onNext = Belt_MapInt.set(b.onNext, res.id, (function (value) {
+          var match = both$1.contents;
+          both$1.contents = [
+            match[0],
+            value
+          ];
+          call(res, both$1.contents);
         }));
   return res;
 }
@@ -123,7 +147,8 @@ exports.makeId = makeId;
 exports.make = make;
 exports.sub = sub;
 exports.call = call;
-exports.merge = merge;
+exports.either = either;
+exports.both = both;
 exports.reduce = reduce;
 exports.map = map;
 exports.flatMap = flatMap;
