@@ -1,6 +1,6 @@
 module List = Belt.List;
 
-let { make, call, sub, map, reduce, thunk, either, both, interval, flatMap } = module(ReX);
+let { make, call, sub, map, reduce, thunk, either, both, interval, flatMap, debounce, delay } = module(ReX);
 
 module Util = {
     let wait = ms => Js.Promise2.make((~resolve, ~reject as _) =>
@@ -111,6 +111,55 @@ let testCounter = async () => {
     Test.run("counter == 432", lastValue, Some(432));
 }
 
+let testDelay = async () => {
+    let input = make();
+    let lastValue = await input
+        ->delay(100)
+        ->reduce(list{}, Belt.List.add)
+        ->Util.getLast(async () => {
+            input->call(1);
+            await Util.wait(10)
+            input->call(2);
+            input->call(3);
+            await Util.wait(50)
+            input->call(4);
+        });
+
+    Test.run("delay without waiting", lastValue, None)
+
+    let lastValue = await input
+        ->delay(100)
+        ->reduce(list{}, Belt.List.add)
+        ->Util.getLast(async () => {
+            input->call(1);
+            await Util.wait(10)
+            input->call(2);
+            input->call(3);
+            await Util.wait(50)
+            input->call(4);
+            await Util.wait(100);
+        });
+
+    Test.run("delay with waiting", lastValue, Some(list{4, 3, 2, 1}))
+}
+
+let testDebounce = async () => {
+    let input = make();
+    let lastValue = await input
+        ->debounce(100)
+        ->reduce(list{}, Belt.List.add)
+        ->Util.getLast(async () => {
+            input->call(1);
+            await Util.wait(200);
+            input->call(2);
+            input->call(3);
+            input->call(4);
+            await Util.wait(200);
+        });
+
+    Test.run("debounced", lastValue, Some(list{4, 1}))
+}
+
 type reincrement = {
     id: int,
     value: int,
@@ -190,6 +239,8 @@ let main = async () => {
         testSub(),
         testFlatMap(),
         testBoth(),
+        testDebounce(),
+        testDelay(),
     ]);
     Js.log("}");
 }

@@ -132,6 +132,60 @@ async function testCounter(param) {
   return Test.run(undefined, "counter == 432", lastValue$2, 432);
 }
 
+async function testDelay(param) {
+  var input = ReX.make(undefined);
+  var lastValue = await getLast(ReX.reduce(ReX.delay(input, 100), /* [] */0, Belt_List.add), (async function (param) {
+          ReX.call(input, 1);
+          await wait(10);
+          ReX.call(input, 2);
+          ReX.call(input, 3);
+          await wait(50);
+          return ReX.call(input, 4);
+        }));
+  Test.run(undefined, "delay without waiting", lastValue, undefined);
+  var lastValue$1 = await getLast(ReX.reduce(ReX.delay(input, 100), /* [] */0, Belt_List.add), (async function (param) {
+          ReX.call(input, 1);
+          await wait(10);
+          ReX.call(input, 2);
+          ReX.call(input, 3);
+          await wait(50);
+          ReX.call(input, 4);
+          return await wait(100);
+        }));
+  return Test.run(undefined, "delay with waiting", lastValue$1, {
+              hd: 4,
+              tl: {
+                hd: 3,
+                tl: {
+                  hd: 2,
+                  tl: {
+                    hd: 1,
+                    tl: /* [] */0
+                  }
+                }
+              }
+            });
+}
+
+async function testDebounce(param) {
+  var input = ReX.make(undefined);
+  var lastValue = await getLast(ReX.reduce(ReX.debounce(input, 100), /* [] */0, Belt_List.add), (async function (param) {
+          ReX.call(input, 1);
+          await wait(200);
+          ReX.call(input, 2);
+          ReX.call(input, 3);
+          ReX.call(input, 4);
+          return await wait(200);
+        }));
+  return Test.run(undefined, "debounced", lastValue, {
+              hd: 4,
+              tl: {
+                hd: 1,
+                tl: /* [] */0
+              }
+            });
+}
+
 async function testInterval(param) {
   var interval = ReX.interval(100);
   var lastValue = await getLast(ReX.map(ReX.reduce(interval, {
@@ -234,7 +288,9 @@ async function main(param) {
         testInterval(undefined),
         testSub(undefined),
         testFlatMap(undefined),
-        testBoth(undefined)
+        testBoth(undefined),
+        testDebounce(undefined),
+        testDelay(undefined)
       ]);
   console.log("}");
 }
@@ -263,6 +319,10 @@ var interval = ReX.interval;
 
 var flatMap = ReX.flatMap;
 
+var debounce = ReX.debounce;
+
+var delay = ReX.delay;
+
 exports.List = List;
 exports.make = make;
 exports.call = call;
@@ -274,11 +334,15 @@ exports.either = either;
 exports.both = both;
 exports.interval = interval;
 exports.flatMap = flatMap;
+exports.debounce = debounce;
+exports.delay = delay;
 exports.Util = Util;
 exports.testMap = testMap;
 exports.testReduce = testReduce;
 exports.testThunkFilter = testThunkFilter;
 exports.testCounter = testCounter;
+exports.testDelay = testDelay;
+exports.testDebounce = testDebounce;
 exports.testInterval = testInterval;
 exports.testBoth = testBoth;
 exports.testFlatMap = testFlatMap;

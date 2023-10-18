@@ -35,4 +35,12 @@ let both: (t<'a, 'b>, t<'c, 'd>, ('b, 'd)) => id<('b, 'd)>
 let reduce: (t<'a, 'b>, 'c, ('c, 'b) => 'c) => t<'b, 'c>
 let map: (t<'a, 'b>, 'b => 'c) => t<'b, 'c>
 let flatMap: (t<'a, 'b>, 'b, 'b => t<'b, 'c>) => t<'b, 'c>
+
+/*
+ takes interval and returnes self-emmited an observable
+ that takes `start` boolean to begin or finish the interval
+ */
 let interval: int => t<bool, int>
+
+let debounce: (t<'a, 'b>, int) => t<'b, 'b>
+let delay: (t<'a, 'b>, int) => t<'b, 'b>

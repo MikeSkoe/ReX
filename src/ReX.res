@@ -110,18 +110,36 @@ let flatMap: (t<'a, 'b>, 'b, 'b => t<'b, 'c>) => t<'b, 'c>
 let interval: int => t<bool, int>
     =
     interval => {
-        let x = ref(None);
+        let timeoutId = ref(None);
 
         {
             id: makeId(),
             thunk: ((stop, dispatch) => {
-                x.contents->Option.forEach(clearInterval);
+                timeoutId.contents->Option.forEach(clearInterval);
 
                 if !stop {
                     let id = makeId();
-                    x := Some(setInterval(() => id->dispatch, interval))
+                    timeoutId := Some(setInterval(() => id->dispatch, interval))
                 }
             }),
             onNext: Subs.empty,
         };
     };
+
+let debounce: (t<'a, 'b>, int) => t<'b, 'b>
+    =
+    (t, delay) => {
+        let timeoutId = ref(None);
+
+        t->thunk((value, dispatch) => {
+            timeoutId.contents->Option.forEach(clearTimeout);
+            timeoutId := Some(setTimeout(() => value->dispatch, delay))
+        })
+    }
+
+let delay: (t<'a, 'b>, int) => t<'b, 'b>
+    =
+    (t, delay) =>
+        t->thunk((value, dispatch) => {
+            setTimeout(() => value->dispatch, delay)->ignore;
+        })

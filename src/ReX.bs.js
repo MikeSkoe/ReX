@@ -116,25 +116,47 @@ function flatMap(t, empty, flatMap$1) {
 }
 
 function interval(interval$1) {
-  var x = {
+  var timeoutId = {
     contents: undefined
   };
   return {
           id: Js_math.random_int(1, 9999),
           thunk: (function (stop, dispatch) {
-              Core__Option.forEach(x.contents, (function (prim) {
+              Core__Option.forEach(timeoutId.contents, (function (prim) {
                       clearInterval(prim);
                     }));
               if (stop) {
                 return ;
               }
               var id = Js_math.random_int(1, 9999);
-              x.contents = Caml_option.some(setInterval((function (param) {
+              timeoutId.contents = Caml_option.some(setInterval((function (param) {
                           Curry._1(dispatch, id);
                         }), interval$1));
             }),
           onNext: undefined
         };
+}
+
+function debounce(t, delay) {
+  var timeoutId = {
+    contents: undefined
+  };
+  return thunk(t, (function (value, dispatch) {
+                Core__Option.forEach(timeoutId.contents, (function (prim) {
+                        clearTimeout(prim);
+                      }));
+                timeoutId.contents = Caml_option.some(setTimeout((function (param) {
+                            Curry._1(dispatch, value);
+                          }), delay));
+              }));
+}
+
+function delay(t, delay$1) {
+  return thunk(t, (function (value, dispatch) {
+                setTimeout((function (param) {
+                        Curry._1(dispatch, value);
+                      }), delay$1);
+              }));
 }
 
 exports.make = make;
@@ -147,4 +169,6 @@ exports.reduce = reduce;
 exports.map = map;
 exports.flatMap = flatMap;
 exports.interval = interval;
+exports.debounce = debounce;
+exports.delay = delay;
 /* No side effect */
