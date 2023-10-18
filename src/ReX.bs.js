@@ -3,104 +3,148 @@
 
 var Curry = require("rescript/lib/js/curry.js");
 var Js_math = require("rescript/lib/js/js_math.js");
-var Belt_List = require("rescript/lib/js/belt_List.js");
+var Belt_MapInt = require("rescript/lib/js/belt_MapInt.js");
+var Caml_option = require("rescript/lib/js/caml_option.js");
 var Core__Option = require("@rescript/core/src/Core__Option.bs.js");
 
 function make(param) {
   return {
-          id: Js_math.random_int(1, 99999),
-          subs: /* [] */0
+          id: Js_math.random_int(1, 9999),
+          thunk: (function (value, dispatch) {
+              Curry._1(dispatch, value);
+            }),
+          onNext: undefined
         };
 }
 
-function thunk(depOn, thunk$1) {
-  var resOn = {
-    id: Js_math.random_int(1, 99999),
-    subs: /* [] */0
+function sub(t, effect) {
+  var id = Js_math.random_int(1, 9999);
+  var unsub = function (param) {
+    t.onNext = Belt_MapInt.remove(t.onNext, id);
   };
-  var lastUnsub = {
-    contents: undefined
-  };
-  depOn.subs = Belt_List.add(depOn.subs, (function (value) {
-          Belt_List.forEach(resOn.subs, (function (fn) {
-                  Core__Option.forEach(lastUnsub.contents, (function (fn) {
-                          Curry._1(fn, undefined);
-                        }));
-                  lastUnsub.contents = thunk$1(fn, value);
-                }));
-        }));
-  return resOn;
-}
-
-function merge(a, b) {
-  var resOn = {
-    id: Js_math.random_int(1, 99999),
-    subs: /* [] */0
-  };
-  var callback = function (value) {
-    Belt_List.forEach(resOn.subs, (function (fn) {
-            Curry._1(fn, value);
-          }));
-  };
-  a.subs = Belt_List.add(a.subs, callback);
-  b.subs = Belt_List.add(b.subs, callback);
-  return resOn;
-}
-
-function sub(depOn, callback) {
-  depOn.subs = Belt_List.add(depOn.subs, callback);
-  return function (param) {
-    depOn.subs = Belt_List.keep(depOn.subs, (function (fn) {
-            return fn !== callback;
-          }));
-  };
+  t.onNext = Belt_MapInt.set(t.onNext, id, effect);
+  return unsub;
 }
 
 function call(t, value) {
-  Belt_List.forEach(t.subs, (function (fn) {
-          Curry._1(fn, value);
+  Belt_MapInt.forEach(t.onNext, (function (param, dispatch) {
+          Curry._2(t.thunk, value, dispatch);
         }));
 }
 
-function reduce(depOn, initial, reduce$1) {
-  var resOn = {
-    id: Js_math.random_int(1, 99999),
-    subs: /* [] */0
-  };
-  var state = {
+function thunk(t, thunk$1) {
+  var res = make(undefined);
+  res.thunk = thunk$1;
+  t.onNext = Belt_MapInt.set(t.onNext, res.id, (function (param) {
+          return call(res, param);
+        }));
+  return res;
+}
+
+function either(a, b) {
+  var res = make(undefined);
+  a.onNext = Belt_MapInt.set(a.onNext, res.id, (function (param) {
+          return call(res, param);
+        }));
+  b.onNext = Belt_MapInt.set(b.onNext, res.id, (function (param) {
+          return call(res, param);
+        }));
+  return res;
+}
+
+function both(a, b, initial) {
+  var res = make(undefined);
+  var both$1 = {
     contents: initial
   };
-  depOn.subs = Belt_List.add(depOn.subs, (function (value) {
-          state.contents = Curry._2(reduce$1, state.contents, value);
-          Belt_List.forEach(resOn.subs, (function (fn) {
-                  Curry._1(fn, state.contents);
-                }));
+  a.onNext = Belt_MapInt.set(a.onNext, res.id, (function (value) {
+          var match = both$1.contents;
+          both$1.contents = [
+            value,
+            match[1]
+          ];
+          call(res, both$1.contents);
         }));
-  return resOn;
+  b.onNext = Belt_MapInt.set(b.onNext, res.id, (function (value) {
+          var match = both$1.contents;
+          both$1.contents = [
+            match[0],
+            value
+          ];
+          call(res, both$1.contents);
+        }));
+  return res;
 }
 
-function map(depOn, map$1) {
-  var resOn = {
-    id: Js_math.random_int(1, 99999),
-    subs: /* [] */0
+function map(t, map$1) {
+  var res = {
+    id: Js_math.random_int(1, 9999),
+    thunk: (function (value, dispatch) {
+        Curry._1(dispatch, Curry._1(map$1, value));
+      }),
+    onNext: undefined
   };
-  depOn.subs = Belt_List.add(depOn.subs, (function (value) {
-          Belt_List.forEach(resOn.subs, (function (fn) {
-                  Curry._1(fn, Curry._1(map$1, value));
-                }));
+  t.onNext = Belt_MapInt.set(t.onNext, res.id, (function (param) {
+          return call(res, param);
         }));
-  return resOn;
+  return res;
 }
 
-var Utils = {
-  reduce: reduce,
-  map: map
-};
+function reduce(t, initial, reducer) {
+  var stored = {
+    contents: initial
+  };
+  var res = map(make(undefined), (function (value) {
+          var newValue = Curry._2(reducer, stored.contents, value);
+          stored.contents = newValue;
+          return newValue;
+        }));
+  t.onNext = Belt_MapInt.set(t.onNext, res.id, (function (param) {
+          return call(res, param);
+        }));
+  return res;
+}
+
+function flatMap(t, empty, flatMap$1) {
+  var res = Curry._1(flatMap$1, empty);
+  t.onNext = Belt_MapInt.set(t.onNext, res.id, (function (value) {
+          var newRes = Curry._1(flatMap$1, value);
+          res.thunk = newRes.thunk;
+          call(res, value);
+        }));
+  return res;
+}
+
+function interval(interval$1) {
+  var x = {
+    contents: undefined
+  };
+  return {
+          id: Js_math.random_int(1, 9999),
+          thunk: (function (stop, dispatch) {
+              Core__Option.forEach(x.contents, (function (prim) {
+                      clearInterval(prim);
+                    }));
+              if (stop) {
+                return ;
+              }
+              var id = Js_math.random_int(1, 9999);
+              x.contents = Caml_option.some(setInterval((function (param) {
+                          Curry._1(dispatch, id);
+                        }), interval$1));
+            }),
+          onNext: undefined
+        };
+}
 
 exports.make = make;
-exports.merge = merge;
-exports.thunk = thunk;
 exports.sub = sub;
 exports.call = call;
-exports.Utils = Utils;
+exports.thunk = thunk;
+exports.either = either;
+exports.both = both;
+exports.reduce = reduce;
+exports.map = map;
+exports.flatMap = flatMap;
+exports.interval = interval;
 /* No side effect */

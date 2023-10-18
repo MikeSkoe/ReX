@@ -1,82 +1,127 @@
-module List = Belt.List;
+module Subs = Belt.Map.Int
 
-type t<'a> = {
+type thunk<'a, 'b> = ('a, 'b => unit) => unit;
+type t<'a, 'b> = {
     id: int,
-    mutable subs: list<'a => unit>,
-};
-
-let makeId = () => Js.Math.random_int(1, 99999);
-
-let make = (_: 'a): t<'a> => {
-    id: makeId(),
-    subs: list{},
+    mutable thunk: thunk<'a, 'b>,
+    mutable onNext: Subs.t<'b => unit>,
 }
+type id<'a> = t<'a, 'a>;
 
-let thunk = (depOn, thunk) => {
-    let resOn = {
+let makeId: unit => int
+    =
+    () => Js.Math.random_int(1, 9999);
+
+let make: () => id<'a>
+    =
+    () => {
         id: makeId(),
-        subs: list{},
+        onNext: Subs.empty,
+        thunk: (value, dispatch) => dispatch(value),
     };
-    let lastUnsub = ref(None);
 
-    depOn.subs = depOn.subs->List.add(value =>
-        resOn.subs->List.forEach(fn => {
-            lastUnsub.contents->Option.forEach(fn => fn());
-            lastUnsub := thunk(. fn, value);
-        }),
-    );
-    resOn;
-};
-
-let merge = (a, b) => {
-    let resOn = {
-        id: makeId(),
-        subs: list{},
+let sub: (t<'a, 'b>, 'b => unit) => (unit => unit)
+    =
+    (t, effect) => {
+        let id = makeId();
+        let unsub = () => t.onNext = t.onNext->Subs.remove(id);
+        t.onNext = t.onNext->Subs.set(id, effect);
+        unsub;
     };
-    let callback = value => resOn.subs->List.forEach(fn => value->fn);
 
-    a.subs = a.subs->List.add(callback);
-    b.subs = b.subs->List.add(callback);
-    resOn;
-}
+let call: (t<'a, 'b>, 'a) => unit
+    =
+    (t, value) => t.onNext->Subs.forEach((_, dispatch) => t.thunk(value, dispatch));
 
-let sub = (depOn, callback) => {
-    depOn.subs = depOn.subs->List.add(callback);
-    () => depOn.subs = depOn.subs->List.keep(fn => fn !== callback);
-}
+let thunk: (t<'a, 'b>, thunk<'b, 'c>) => t<'b, 'c>
+    =
+    (t, thunk) => {
+        let res = make();
+        res.thunk = thunk;
+        t.onNext = t.onNext->Subs.set(res.id, call(res))
+        res;
+    }
 
-let call = (t, value) => t.subs->List.forEach(fn => value->fn);
+let either: (t<'a, 'b>, t<'c, 'b>) => id<'b>
+    =
+    (a, b) => {
+        let res = make();
+        a.onNext = a.onNext->Subs.set(res.id, call(res));
+        b.onNext = b.onNext->Subs.set(res.id, call(res));
+        res;
+    }
 
-module Utils = {
-    let reduce = (depOn, initial, reduce) => {
-        let resOn = {
+let both: (t<'a, 'b>, t<'c, 'd>, ('b, 'd)) => id<('b, 'd)>
+    =
+    (a, b, initial) => {
+        let res = make();
+        let both = ref(initial);
+        a.onNext = a.onNext->Subs.set(res.id, value => {
+            let (_, right) = both.contents;
+            both := (value, right);
+            res->call(both.contents);
+        });
+        b.onNext = b.onNext->Subs.set(res.id, value => {
+            let (left, _) = both.contents;
+            both := (left, value);
+            res->call(both.contents);
+        });
+        res;
+    }
+
+let map: (t<'a, 'b>, 'b => 'c) => t<'b, 'c>
+    =
+    (t, map) => {
+        let res = {
             id: makeId(),
-            subs: list{},
+            thunk: (value, dispatch) => value->map->dispatch,
+            onNext: Subs.empty,
         };
-        let state = ref(initial);
+        t.onNext = t.onNext->Subs.set(res.id, call(res));
+        res;
+    };
 
-        depOn.subs = depOn.subs->List.add(value => {
-            state := reduce(state.contents, value);
-            resOn.subs->List.forEach(fn =>
-                state.contents->fn
-            );
+let reduce: (t<'a, 'b>, 'c, ('c, 'b) => 'c) => t<'b, 'c>
+    =
+    (t, initial, reducer) => {
+        let stored = ref(initial);
+        let res = make()->map(value => {
+            let newValue = reducer(stored.contents, value);
+            stored := newValue;
+            newValue;
         });
 
-        resOn;
+        t.onNext = t.onNext->Subs.set(res.id, call(res));
+        res;
     }
 
-    let map = (depOn, map) => {
-        let resOn = {
+let flatMap: (t<'a, 'b>, 'b, 'b => t<'b, 'c>) => t<'b, 'c>
+    =
+    (t, empty, flatMap) => {
+        let res = flatMap(empty);
+        t.onNext = t.onNext->Subs.set(res.id, value => {
+            let newRes = flatMap(value);
+            res.thunk = newRes.thunk;
+            res->call(value);
+        })
+        res;
+    }
+
+let interval: int => t<bool, int>
+    =
+    interval => {
+        let x = ref(None);
+
+        {
             id: makeId(),
-            subs: list{},
-        }
+            thunk: ((stop, dispatch) => {
+                x.contents->Option.forEach(clearInterval);
 
-        depOn.subs = depOn.subs->List.add(value =>
-            resOn.subs->List.forEach(fn =>
-                value->map->fn,
-            ),
-        );
-        resOn;
-    }
-}
-
+                if !stop {
+                    let id = makeId();
+                    x := Some(setInterval(() => id->dispatch, interval))
+                }
+            }),
+            onNext: Subs.empty,
+        };
+    };
