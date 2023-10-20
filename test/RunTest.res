@@ -1,6 +1,6 @@
 module List = Belt.List;
 
-let { id, make, call, sub, map, reduce, thunk, either, both, interval, flatMap, debounce, delay, filter } = module(ReX);
+let { id, make, call, sub, map, reduce, thunk, either, both, interval, flatMap, debounce, delay, filter, mapSub } = module(ReX);
 
 module Util = {
     let wait = ms => Js.Promise2.make((~resolve, ~reject as _) =>
@@ -192,6 +192,33 @@ let testBoth = async () => {
     Test.run("both", lastValue, Some((2, "A")));
 }
 
+let testMapSub = async () => {
+    let a = make(id);
+    let (b, unsub) =
+        a
+        ->map(Belt.Int.toString)
+        ->reduce("", (a, b) => `${a}:${b}`)
+        ->mapSub(id);
+
+    let lastValue = await b
+        ->Util.getLast(async () => {
+            a->call(1);
+            a->call(2);
+            a->call(3);
+        });
+    Test.run("mapSub :1:2:3", lastValue, Some(":1:2:3"));
+
+    unsub();
+
+    let lastValue = await b
+        ->Util.getLast(async () => {
+            a->call(1);
+            a->call(2);
+            a->call(3);
+        });
+    Test.run("mapSub empty", lastValue, None);
+}
+
 let testFlatMap = async () => {
     let input = make(id);
     let lastValue = await input
@@ -234,6 +261,7 @@ let main = async () => {
         testBoth(),
         testDebounce(),
         testDelay(),
+        testMapSub(),
     ]);
     Js.log("Finished");
 }

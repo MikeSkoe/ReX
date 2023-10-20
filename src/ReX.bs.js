@@ -21,6 +21,12 @@ function make(map) {
         };
 }
 
+function call(t, value) {
+  Belt_MapInt.forEach(t.onNext, (function (param, dispatch) {
+          Curry._2(t.thunk, value, dispatch);
+        }));
+}
+
 function sub(t, effect) {
   var id = Js_math.random_int(1, 9999);
   var unsub = function (param) {
@@ -30,10 +36,15 @@ function sub(t, effect) {
   return unsub;
 }
 
-function call(t, value) {
-  Belt_MapInt.forEach(t.onNext, (function (param, dispatch) {
-          Curry._2(t.thunk, value, dispatch);
+function mapSub(t, map) {
+  var res = make(map);
+  var unsub = sub(t, (function (param) {
+          return call(res, param);
         }));
+  return [
+          res,
+          unsub
+        ];
 }
 
 function thunk(t, thunk$1) {
@@ -171,6 +182,7 @@ function delay(t, delay$1) {
 exports.id = id;
 exports.make = make;
 exports.sub = sub;
+exports.mapSub = mapSub;
 exports.call = call;
 exports.thunk = thunk;
 exports.either = either;

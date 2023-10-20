@@ -230,6 +230,29 @@ async function testBoth(param) {
             ]);
 }
 
+async function testMapSub(param) {
+  var a = ReX.make(ReX.id);
+  var match = ReX.mapSub(ReX.reduce(ReX.map(a, (function (prim) {
+                  return String(prim);
+                })), "", (function (a, b) {
+              return "" + a + ":" + b + "";
+            })), ReX.id);
+  var b = match[0];
+  var lastValue = await getLast(b, (async function (param) {
+          ReX.call(a, 1);
+          ReX.call(a, 2);
+          return ReX.call(a, 3);
+        }));
+  Test.run(undefined, "mapSub :1:2:3", lastValue, ":1:2:3");
+  Curry._1(match[1], undefined);
+  var lastValue$1 = await getLast(b, (async function (param) {
+          ReX.call(a, 1);
+          ReX.call(a, 2);
+          return ReX.call(a, 3);
+        }));
+  return Test.run(undefined, "mapSub empty", lastValue$1, undefined);
+}
+
 async function testFlatMap(param) {
   var input = ReX.make(ReX.id);
   var lastValue = await getLast(ReX.reduce(ReX.flatMap(input, true, (function (value) {
@@ -287,7 +310,8 @@ async function main(param) {
         testFlatMap(undefined),
         testBoth(undefined),
         testDebounce(undefined),
-        testDelay(undefined)
+        testDelay(undefined),
+        testMapSub(undefined)
       ]);
   console.log("Finished");
 }
@@ -324,6 +348,8 @@ var delay = ReX.delay;
 
 var filter = ReX.filter;
 
+var mapSub = ReX.mapSub;
+
 exports.List = List;
 exports.id = id;
 exports.make = make;
@@ -339,6 +365,7 @@ exports.flatMap = flatMap;
 exports.debounce = debounce;
 exports.delay = delay;
 exports.filter = filter;
+exports.mapSub = mapSub;
 exports.Util = Util;
 exports.testMap = testMap;
 exports.testReduce = testReduce;
@@ -348,6 +375,7 @@ exports.testDelay = testDelay;
 exports.testDebounce = testDebounce;
 exports.testInterval = testInterval;
 exports.testBoth = testBoth;
+exports.testMapSub = testMapSub;
 exports.testFlatMap = testFlatMap;
 exports.testSub = testSub;
 exports.main = main;

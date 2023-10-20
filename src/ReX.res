@@ -21,6 +21,10 @@ let make: ('a => 'b) => t<'a, 'b>
         thunk: (value, dispatch) => value->map->dispatch,
     };
 
+let call: (t<'a, 'b>, 'a) => unit
+    =
+    (t, value) => t.onNext->Subs.forEach((_, dispatch) => t.thunk(value, dispatch));
+
 let sub: (t<'a, 'b>, 'b => unit) => (unit => unit)
     =
     (t, effect) => {
@@ -30,9 +34,13 @@ let sub: (t<'a, 'b>, 'b => unit) => (unit => unit)
         unsub;
     };
 
-let call: (t<'a, 'b>, 'a) => unit
+let mapSub: (t<'a, 'b>, 'b => 'c) => (t<'b, 'c>, unit => unit)
     =
-    (t, value) => t.onNext->Subs.forEach((_, dispatch) => t.thunk(value, dispatch));
+    (t, map) => {
+        let res = make(map);
+        let unsub = t->sub(call(res));
+        (res, unsub);
+    }
 
 let thunk: (t<'a, 'b>, thunk<'b, 'c>) => t<'b, 'c>
     =
