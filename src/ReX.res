@@ -6,18 +6,19 @@ type t<'a, 'b> = {
     mutable thunk: thunk<'a, 'b>,
     mutable onNext: Subs.t<'b => unit>,
 }
-type id<'a> = t<'a, 'a>;
+
+let id = a => a;
 
 let makeId: unit => int
     =
     () => Js.Math.random_int(1, 9999);
 
-let make: () => id<'a>
+let make: ('a => 'b) => t<'a, 'b>
     =
-    () => {
+    map => {
         id: makeId(),
         onNext: Subs.empty,
-        thunk: (value, dispatch) => dispatch(value),
+        thunk: (value, dispatch) => value->map->dispatch,
     };
 
 let sub: (t<'a, 'b>, 'b => unit) => (unit => unit)
@@ -36,25 +37,25 @@ let call: (t<'a, 'b>, 'a) => unit
 let thunk: (t<'a, 'b>, thunk<'b, 'c>) => t<'b, 'c>
     =
     (t, thunk) => {
-        let res = make();
+        let res = make(id);
         res.thunk = thunk;
         t.onNext = t.onNext->Subs.set(res.id, call(res))
         res;
     }
 
-let either: (t<'a, 'b>, t<'c, 'b>) => id<'b>
+let either: (t<'a, 'b>, t<'c, 'b>) => t<'b, 'b>
     =
     (a, b) => {
-        let res = make();
+        let res = make(id);
         a.onNext = a.onNext->Subs.set(res.id, call(res));
         b.onNext = b.onNext->Subs.set(res.id, call(res));
         res;
     }
 
-let both: (t<'a, 'b>, t<'c, 'd>, ('b, 'd)) => id<('b, 'd)>
+let both: (t<'a, 'b>, t<'c, 'd>, ('b, 'd)) => t<('b, 'd), ('b, 'd)>
     =
     (a, b, initial) => {
-        let res = make();
+        let res = make(id);
         let both = ref(initial);
         a.onNext = a.onNext->Subs.set(res.id, value => {
             let (_, right) = both.contents;
@@ -72,20 +73,31 @@ let both: (t<'a, 'b>, t<'c, 'd>, ('b, 'd)) => id<('b, 'd)>
 let map: (t<'a, 'b>, 'b => 'c) => t<'b, 'c>
     =
     (t, map) => {
-        let res = {
-            id: makeId(),
-            thunk: (value, dispatch) => value->map->dispatch,
-            onNext: Subs.empty,
-        };
+        let res = make(map);
         t.onNext = t.onNext->Subs.set(res.id, call(res));
         res;
     };
+
+let filter: (t<'a, 'b>, 'b => bool) => t<'b, 'b>
+    =
+    (t, filter) => {
+        let res = make(id);
+        t.onNext = t.onNext->Subs.set(
+            res.id,
+            value => {
+                if filter(value) {
+                    res->call(value);
+                }
+            }
+        );
+        res;
+    }
 
 let reduce: (t<'a, 'b>, 'c, ('c, 'b) => 'c) => t<'b, 'c>
     =
     (t, initial, reducer) => {
         let stored = ref(initial);
-        let res = make()->map(value => {
+        let res = make(id)->map(value => {
             let newValue = reducer(stored.contents, value);
             stored := newValue;
             newValue;

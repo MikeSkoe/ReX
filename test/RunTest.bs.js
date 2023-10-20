@@ -33,11 +33,11 @@ var Util = {
 };
 
 async function testMap(param) {
-  var input = ReX.make(undefined);
-  var lastValue = await getLast(ReX.map(input, (function (num) {
-              return num + 1 | 0;
-            })), (async function (param) {
-          return ReX.call(input, 1);
+  var state = ReX.make(function (num) {
+        return num + 1 | 0;
+      });
+  var lastValue = await getLast(state, (async function (param) {
+          return ReX.call(state, 1);
         }));
   return Test.run(undefined, "map", lastValue, 2);
 }
@@ -50,7 +50,7 @@ async function testReduce(param) {
       return Belt_List.add(acc, curr);
     }
   };
-  var input = ReX.make(undefined);
+  var input = ReX.make(ReX.id);
   var lastValue = await getLast(ReX.reduce(ReX.reduce(input, 0, (function (acc, param) {
                   return acc + 1 | 0;
                 })), /* [] */0, appendIfOdd), (async function (param) {
@@ -76,15 +76,12 @@ async function testReduce(param) {
             });
 }
 
-async function testThunkFilter(param) {
-  var callIfEven = function (a, dispatch) {
-    if (a % 2 === 0) {
-      return Curry._1(dispatch, a);
-    }
-    
+async function testFilter(param) {
+  var isEven = function (value) {
+    return value % 2 === 0;
   };
-  var input = ReX.make(undefined);
-  var lastValue = await getLast(ReX.reduce(ReX.thunk(input, callIfEven), 0, (function (acc, curr) {
+  var input = ReX.make(ReX.id);
+  var lastValue = await getLast(ReX.reduce(ReX.filter(input, isEven), 0, (function (acc, curr) {
               return acc + curr | 0;
             })), (async function (param) {
           ReX.call(input, 1);
@@ -105,26 +102,27 @@ async function testCounter(param) {
       return 0;
     }
   };
-  var incr = ReX.make(undefined);
-  var reset = ReX.make(undefined);
-  var input = ReX.reduce(ReX.either(ReX.map(incr, (function (shift) {
-                  return /* Increment */{
-                          _0: shift
-                        };
-                })), ReX.map(reset, (function (param) {
-                  return /* Reset */0;
-                }))), 0, reduce);
-  var lastValue = await getLast(input, (async function (param) {
+  var incr = ReX.make(function (shift) {
+        return /* Increment */{
+                _0: shift
+              };
+      });
+  var reset = ReX.make(function (param) {
+        return /* Reset */0;
+      });
+  var state = ReX.reduce(ReX.either(incr, reset), 0, reduce);
+  var lastValue = await getLast(state, (async function (param) {
           ReX.call(incr, 1);
           ReX.call(incr, 20);
           return ReX.call(incr, 300);
         }));
   Test.run(undefined, "counter === 321", lastValue, 321);
-  var lastValue$1 = await getLast(input, (async function (param) {
-          return ReX.call(reset, undefined);
+  var lastValue$1 = await getLast(state, (async function (param) {
+          ReX.call(reset, undefined);
+          return await wait(100);
         }));
   Test.run(undefined, "counter is reset", lastValue$1, 0);
-  var lastValue$2 = await getLast(input, (async function (param) {
+  var lastValue$2 = await getLast(state, (async function (param) {
           ReX.call(incr, 2);
           ReX.call(incr, 30);
           return ReX.call(incr, 400);
@@ -133,7 +131,7 @@ async function testCounter(param) {
 }
 
 async function testDelay(param) {
-  var input = ReX.make(undefined);
+  var input = ReX.make(ReX.id);
   var lastValue = await getLast(ReX.reduce(ReX.delay(input, 100), /* [] */0, Belt_List.add), (async function (param) {
           ReX.call(input, 1);
           await wait(10);
@@ -168,7 +166,7 @@ async function testDelay(param) {
 }
 
 async function testDebounce(param) {
-  var input = ReX.make(undefined);
+  var input = ReX.make(ReX.id);
   var lastValue = await getLast(ReX.reduce(ReX.debounce(input, 100), /* [] */0, Belt_List.add), (async function (param) {
           ReX.call(input, 1);
           await wait(200);
@@ -216,8 +214,8 @@ async function testInterval(param) {
 }
 
 async function testBoth(param) {
-  var a = ReX.make(undefined);
-  var b = ReX.make(undefined);
+  var a = ReX.make(ReX.id);
+  var b = ReX.make(ReX.id);
   var lastValue = await getLast(ReX.both(a, b, [
             0,
             ""
@@ -233,9 +231,9 @@ async function testBoth(param) {
 }
 
 async function testFlatMap(param) {
-  var input = ReX.make(undefined);
+  var input = ReX.make(ReX.id);
   var lastValue = await getLast(ReX.reduce(ReX.flatMap(input, true, (function (value) {
-                  return ReX.map(ReX.make(undefined), (function (param) {
+                  return ReX.map(ReX.make(ReX.id), (function (param) {
                                 if (value === true) {
                                   return "TRUE";
                                 } else {
@@ -264,7 +262,7 @@ async function testFlatMap(param) {
 }
 
 async function testSub(param) {
-  var input = ReX.make(undefined);
+  var input = ReX.make(ReX.id);
   var lastValue = await getLast(ReX.map(ReX.map(input, (function (value) {
                   return {
                           isEven: value % 2 === 0,
@@ -279,11 +277,10 @@ async function testSub(param) {
 }
 
 async function main(param) {
-  console.log("test {");
   await Promise.all([
         testMap(undefined),
         testReduce(undefined),
-        testThunkFilter(undefined),
+        testFilter(undefined),
         testCounter(undefined),
         testInterval(undefined),
         testSub(undefined),
@@ -292,12 +289,14 @@ async function main(param) {
         testDebounce(undefined),
         testDelay(undefined)
       ]);
-  console.log("}");
+  console.log("Finished");
 }
 
 main(undefined);
 
 var List;
+
+var id = ReX.id;
 
 var make = ReX.make;
 
@@ -323,7 +322,10 @@ var debounce = ReX.debounce;
 
 var delay = ReX.delay;
 
+var filter = ReX.filter;
+
 exports.List = List;
+exports.id = id;
 exports.make = make;
 exports.call = call;
 exports.sub = sub;
@@ -336,10 +338,11 @@ exports.interval = interval;
 exports.flatMap = flatMap;
 exports.debounce = debounce;
 exports.delay = delay;
+exports.filter = filter;
 exports.Util = Util;
 exports.testMap = testMap;
 exports.testReduce = testReduce;
-exports.testThunkFilter = testThunkFilter;
+exports.testFilter = testFilter;
 exports.testCounter = testCounter;
 exports.testDelay = testDelay;
 exports.testDebounce = testDebounce;

@@ -1,39 +1,35 @@
 /*
  `t<'a, 'b>` is an observable that takes `'a` and emmits `'b` to observers
- 'a=>('b)
  */
 type t<'a, 'b>;
 
-/*
- identity observable. Input type is the same as output type
- */
-type id<'a> = t<'a, 'a>;
-
-let make: unit => id<'a>;
+let id: 'a => 'a;
+let make: ('a => 'b) => t<'a, 'b>;
 let sub: (t<'a, 'b>, 'b => unit) => (unit => unit)
 let call: (t<'a, 'b>, 'a) => unit
 
 /*
  impure low-level operator
  */
-let thunk: (t<'a, 'b>, ('b, 'b => unit) => unit) => id<'b>
+let thunk: (t<'a, 'b>, ('b, 'b => unit) => unit) => t<'b, 'b>
 
 /*
  t<'a, 'b> ╮
-           |- id<'b>
+           |- t<'b, 'b>
  t<'c, 'b> ╯
  */
-let either: (t<'a, 'b>, t<'c, 'b>) => id<'b>
+let either: (t<'a, 'b>, t<'c, 'b>) => t<'b, 'b>
 
 /*
  t<'a, 'b> ╮
-           |- id<('b, 'd)>
+           |- t<('b, 'd), ('b, 'd)>
  t<'c, 'd> ╯
  */
-let both: (t<'a, 'b>, t<'c, 'd>, ('b, 'd)) => id<('b, 'd)>
+let both: (t<'a, 'b>, t<'c, 'd>, ('b, 'd)) => t<('b, 'd), ('b, 'd)>
 
 let reduce: (t<'a, 'b>, 'c, ('c, 'b) => 'c) => t<'b, 'c>
 let map: (t<'a, 'b>, 'b => 'c) => t<'b, 'c>
+let filter: (t<'a, 'b>, 'b => bool) => t<'b, 'b>
 let flatMap: (t<'a, 'b>, 'b, 'b => t<'b, 'c>) => t<'b, 'c>
 
 /*

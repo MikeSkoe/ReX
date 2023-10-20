@@ -7,11 +7,15 @@ var Belt_MapInt = require("rescript/lib/js/belt_MapInt.js");
 var Caml_option = require("rescript/lib/js/caml_option.js");
 var Core__Option = require("@rescript/core/src/Core__Option.bs.js");
 
-function make(param) {
+function id(a) {
+  return a;
+}
+
+function make(map) {
   return {
           id: Js_math.random_int(1, 9999),
           thunk: (function (value, dispatch) {
-              Curry._1(dispatch, value);
+              Curry._1(dispatch, Curry._1(map, value));
             }),
           onNext: undefined
         };
@@ -33,7 +37,7 @@ function call(t, value) {
 }
 
 function thunk(t, thunk$1) {
-  var res = make(undefined);
+  var res = make(id);
   res.thunk = thunk$1;
   t.onNext = Belt_MapInt.set(t.onNext, res.id, (function (param) {
           return call(res, param);
@@ -42,7 +46,7 @@ function thunk(t, thunk$1) {
 }
 
 function either(a, b) {
-  var res = make(undefined);
+  var res = make(id);
   a.onNext = Belt_MapInt.set(a.onNext, res.id, (function (param) {
           return call(res, param);
         }));
@@ -53,7 +57,7 @@ function either(a, b) {
 }
 
 function both(a, b, initial) {
-  var res = make(undefined);
+  var res = make(id);
   var both$1 = {
     contents: initial
   };
@@ -77,15 +81,20 @@ function both(a, b, initial) {
 }
 
 function map(t, map$1) {
-  var res = {
-    id: Js_math.random_int(1, 9999),
-    thunk: (function (value, dispatch) {
-        Curry._1(dispatch, Curry._1(map$1, value));
-      }),
-    onNext: undefined
-  };
+  var res = make(map$1);
   t.onNext = Belt_MapInt.set(t.onNext, res.id, (function (param) {
           return call(res, param);
+        }));
+  return res;
+}
+
+function filter(t, filter$1) {
+  var res = make(id);
+  t.onNext = Belt_MapInt.set(t.onNext, res.id, (function (value) {
+          if (Curry._1(filter$1, value)) {
+            return call(res, value);
+          }
+          
         }));
   return res;
 }
@@ -94,7 +103,7 @@ function reduce(t, initial, reducer) {
   var stored = {
     contents: initial
   };
-  var res = map(make(undefined), (function (value) {
+  var res = map(make(id), (function (value) {
           var newValue = Curry._2(reducer, stored.contents, value);
           stored.contents = newValue;
           return newValue;
@@ -159,6 +168,7 @@ function delay(t, delay$1) {
               }));
 }
 
+exports.id = id;
 exports.make = make;
 exports.sub = sub;
 exports.call = call;
@@ -167,6 +177,7 @@ exports.either = either;
 exports.both = both;
 exports.reduce = reduce;
 exports.map = map;
+exports.filter = filter;
 exports.flatMap = flatMap;
 exports.interval = interval;
 exports.debounce = debounce;

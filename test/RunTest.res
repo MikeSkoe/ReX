@@ -1,6 +1,6 @@
 module List = Belt.List;
 
-let { make, call, sub, map, reduce, thunk, either, both, interval, flatMap, debounce, delay } = module(ReX);
+let { id, make, call, sub, map, reduce, thunk, either, both, interval, flatMap, debounce, delay, filter } = module(ReX);
 
 module Util = {
     let wait = ms => Js.Promise2.make((~resolve, ~reject as _) =>
@@ -17,11 +17,10 @@ module Util = {
 }
 
 let testMap = async () => {
-    let input: ReX.t<int, int> = make();
-    let lastValue = await input
-        ->map(num => num + 1)
+    let state: ReX.t<int, int> = make(num => num + 1);
+    let lastValue = await state
         ->Util.getLast(async () => {
-            input->call(1);
+            state->call(1);
         });
 
     Test.run("map", lastValue, Some(2));
@@ -32,7 +31,7 @@ let testReduce = async () => {
         ? acc
         : acc->List.add(curr);
 
-    let input = make();
+    let input = make(id);
     let lastValue = await input
         ->reduce(0, (acc, _) => acc + 1)
         ->reduce(list{}, appendIfOdd)
@@ -45,15 +44,11 @@ let testReduce = async () => {
     Test.run("reduce", lastValue, Some(list{9, 7, 5, 3, 1}));
 }
 
-let testThunkFilter = async () => {
-    let callIfEven = (a, dispatch) => {
-        if mod(a, 2) == 0 {
-            dispatch(a);
-        }
-    }
-    let input = make();
-    let lastValue  = await input
-        ->thunk(callIfEven)
+let testFilter = async () => {
+    let isEven = value => mod(value, 2) == 0;
+    let input = make(id);
+    let lastValue = await input
+        ->filter(isEven)
         ->reduce(0, (acc, curr) => acc + curr)
         ->Util.getLast(async () => {
             input->call(1);
@@ -78,31 +73,30 @@ let testCounter = async () => {
         }
     }
 
-    let incr = make();
-    let reset = make();
+    let incr = make(shift => Counter.Increment(shift));
+    let reset = make(_ => Counter.Reset);
 
-    let input =
-        either(
-            incr->map(shift => Counter.Increment(shift)),
-            reset->map(_ => Counter.Reset),
-        )
+    let state =
+        either(incr, reset)
         ->reduce(Counter.empty, Counter.reduce);
 
-    let lastValue = await input->Util.getLast(async () => {
-        incr->call(1);
-        incr->call(20);
-        incr->call(300)
-    });
+    let lastValue = await state
+        ->Util.getLast(async () => {
+            incr->call(1);
+            incr->call(20);
+            incr->call(300);
+        });
 
     Test.run("counter === 321", lastValue, Some(321));
 
-    let lastValue = await input->Util.getLast(async () => {
+    let lastValue = await state->Util.getLast(async () => {
         reset->call();
+        await Util.wait(100);
     });
 
     Test.run("counter is reset", lastValue, Some(Counter.empty));
 
-    let lastValue = await input->Util.getLast(async () => {
+    let lastValue = await state->Util.getLast(async () => {
         incr->call(2);
         incr->call(30);
         incr->call(400);
@@ -112,7 +106,7 @@ let testCounter = async () => {
 }
 
 let testDelay = async () => {
-    let input = make();
+    let input = make(id);
     let lastValue = await input
         ->delay(100)
         ->reduce(list{}, Belt.List.add)
@@ -144,7 +138,7 @@ let testDelay = async () => {
 }
 
 let testDebounce = async () => {
-    let input = make();
+    let input = make(id);
     let lastValue = await input
         ->debounce(100)
         ->reduce(list{}, Belt.List.add)
@@ -186,8 +180,8 @@ let testInterval = async () => {
 type tempStrc = { isEven: bool, value: int };
 
 let testBoth = async () => {
-    let a = make();
-    let b = make();
+    let a = make(id);
+    let b = make(id);
     let lastValue = await both(a, b, (0, ""))
         ->Util.getLast(async () => {
             a->call(1);
@@ -199,9 +193,9 @@ let testBoth = async () => {
 }
 
 let testFlatMap = async () => {
-    let input = make();
+    let input = make(id);
     let lastValue = await input
-        ->flatMap(true, value => make()->map(_ => value == true ? "TRUE" : "FALSE"))
+        ->flatMap(true, value => make(id)->map(_ => value == true ? "TRUE" : "FALSE"))
         ->reduce(list{}, Belt.List.add)
         ->Util.getLast(async () => {
             input->call(true);
@@ -214,7 +208,7 @@ let testFlatMap = async () => {
 }
 
 let testSub = async () => {
-    let input = make();
+    let input = make(id);
     let lastValue = await input
         ->map(value => {
             isEven: mod(value, 2) == 0,
@@ -229,11 +223,10 @@ let testSub = async () => {
 };
 
 let main = async () => {
-    Js.log("test {");
     let _ = await Js.Promise2.all([
         testMap(),
         testReduce(),
-        testThunkFilter(),
+        testFilter(),
         testCounter(),
         testInterval(),
         testSub(),
@@ -242,7 +235,7 @@ let main = async () => {
         testDebounce(),
         testDelay(),
     ]);
-    Js.log("}");
+    Js.log("Finished");
 }
 
 main()->ignore;
