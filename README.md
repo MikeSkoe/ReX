@@ -1,4 +1,7 @@
-# A minimalist functional reactive library for ReScript, inspired by [React](https://github.com/dbuenzli/react) (not React.js) and [RxJS](https://rxjs.dev) library
+# A ReScript functional reactive library, inspired by [React](https://github.com/dbuenzli/react) (not React.js) and [RxJS](https://rxjs.dev) library
+
+Published in NPM as `@MikeSkoe/rex`
+
 
 > The library is in development, so it is not yet ready for production
 
