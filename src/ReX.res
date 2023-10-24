@@ -45,9 +45,12 @@ let mapSub: (t<'a, 'b>, 'b => 'c) => (t<'b, 'c>, unit => unit)
 let thunk: (t<'a, 'b>, thunk<'b, 'c>) => t<'b, 'c>
     =
     (t, thunk) => {
-        let res = make(id);
-        res.thunk = thunk;
-        t.onNext = t.onNext->Subs.set(res.id, call(res))
+        let res = {
+            id: makeId(),
+            thunk: thunk,
+            onNext: Subs.empty,
+        };
+        t.onNext = t.onNext->Subs.set(res.id, value => call(res, value))
         res;
     }
 

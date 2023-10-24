@@ -14,9 +14,10 @@ let mapSub: (t<'a, 'b>, 'b => 'c) => (t<'b, 'c>, unit => unit)
 let call: (t<'a, 'b>, 'a) => unit
 
 /**
- impure low-level operator
+ An impure low-level operator
+ Allows you to dispatch asynchronously or implement missing operators
  */
-let thunk: (t<'a, 'b>, ('b, 'b => unit) => unit) => t<'b, 'b>
+let thunk: (t<'a, 'b>, ('b, 'c => unit) => unit) => t<'b, 'c>
 
 /**
  t<'a, 'b> ╮

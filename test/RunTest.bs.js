@@ -91,7 +91,7 @@ async function testFilter(param) {
           ReX.call(input, 101);
           return ReX.call(input, 302);
         }));
-  return Test.run(undefined, "thunk filter", lastValue, 348);
+  return Test.run(undefined, "filter", lastValue, 348);
 }
 
 async function testCounter(param) {
@@ -320,52 +320,7 @@ main(undefined);
 
 var List;
 
-var id = ReX.id;
-
-var make = ReX.make;
-
-var call = ReX.call;
-
-var sub = ReX.sub;
-
-var map = ReX.map;
-
-var reduce = ReX.reduce;
-
-var thunk = ReX.thunk;
-
-var either = ReX.either;
-
-var both = ReX.both;
-
-var interval = ReX.interval;
-
-var flatMap = ReX.flatMap;
-
-var debounce = ReX.debounce;
-
-var delay = ReX.delay;
-
-var filter = ReX.filter;
-
-var mapSub = ReX.mapSub;
-
 exports.List = List;
-exports.id = id;
-exports.make = make;
-exports.call = call;
-exports.sub = sub;
-exports.map = map;
-exports.reduce = reduce;
-exports.thunk = thunk;
-exports.either = either;
-exports.both = both;
-exports.interval = interval;
-exports.flatMap = flatMap;
-exports.debounce = debounce;
-exports.delay = delay;
-exports.filter = filter;
-exports.mapSub = mapSub;
 exports.Util = Util;
 exports.testMap = testMap;
 exports.testReduce = testReduce;

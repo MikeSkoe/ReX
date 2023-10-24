@@ -48,10 +48,13 @@ function mapSub(t, map) {
 }
 
 function thunk(t, thunk$1) {
-  var res = make(id);
-  res.thunk = thunk$1;
-  t.onNext = Belt_MapInt.set(t.onNext, res.id, (function (param) {
-          return call(res, param);
+  var res = {
+    id: Js_math.random_int(1, 9999),
+    thunk: thunk$1,
+    onNext: undefined
+  };
+  t.onNext = Belt_MapInt.set(t.onNext, res.id, (function (value) {
+          call(res, value);
         }));
   return res;
 }

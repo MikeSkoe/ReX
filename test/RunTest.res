@@ -1,6 +1,6 @@
 module List = Belt.List;
 
-let { id, make, call, sub, map, reduce, thunk, either, both, interval, flatMap, debounce, delay, filter, mapSub } = module(ReX);
+open ReX;
 
 module Util = {
     let wait = ms => Js.Promise2.make((~resolve, ~reject as _) =>
@@ -59,7 +59,7 @@ let testFilter = async () => {
             input->call(302);
         });
 
-    Test.run("thunk filter", lastValue, Some(2 + 44 + 302));
+    Test.run("filter", lastValue, Some(2 + 44 + 302));
 }
 
 let testCounter = async () => {
